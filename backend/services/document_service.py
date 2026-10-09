@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
-from backend.data.database import get_metadata_collection,get_collection
+from backend.data.database import get_metadata_collection, get_collection
 
 
 def is_document_indexed(filename: str) -> Optional[int]:
@@ -18,11 +18,11 @@ def is_document_indexed(filename: str) -> Optional[int]:
 def register_document(filename: str, total_chunks: int) -> None:
     """Saves a new document entry in the metadata collection."""
     meta_coll = get_metadata_collection()
-    meta_coll.insert_one({
+    meta_coll.update_one({"filename": filename}, {"$set": {
         "filename": filename,
         "uploaded_at": datetime.now(timezone.utc),
         "total_chunks": total_chunks,
-    })
+    }}, upsert=True)
 
 
 def get_all_documents() -> List[Dict[str, Any]]:

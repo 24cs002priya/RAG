@@ -1,56 +1,78 @@
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from typing import List, Dict, Any
 
 from backend.models.schemas import QAResponse, QuestionRequest, UploadResponse
-from backend.services.pdf_service import extract_text_from_pdf
-from backend.services.document_service import get_all_documents, delete_document
-from backend.services.rag_service import answer_question as generate_answer, process_and_store_pdf
-
+from backend.services.document_service import delete_document, get_all_documents
+from backend.services.ingestion_service import ingest_pdf
+from backend.services.rag_service import answer_question
 
 router = APIRouter(prefix="/rag", tags=["rag"])
 
+
 @router.get("/documents", response_model=List[Dict[str, Any]])
 async def list_documents():
-    """Returns the list of all indexed documents for the frontend workspace."""
-    return get_all_documents()
+    try:
+        return get_all_documents()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
 
 @router.delete("/documents/{filename}")
 async def delete_document_endpoint(filename: str):
-    """Deletes a document and its embeddings from MongoDB Atlas."""
-    success = delete_document(filename)
-    if not success:
+    try:
+        deleted = delete_document(filename)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")
     return {"message": f"Successfully deleted {filename}"}
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    document_type: Optional[str] = None,
+    industry: Optional[str] = None,
+    client: Optional[str] = None,
+    project: Optional[str] = None,
+    year: Optional[int] = None,
+    department: Optional[str] = None,
+) -> UploadResponse:
+    filename = file.filename or ""
+    if not filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
-    file_bytes = await file.read()
-
+    metadata = {
+        "document_type": document_type,
+        "industry": industry,
+        "client": client,
+        "project": project,
+        "year": year,
+        "department": department,
+    }
     try:
-        text = extract_text_from_pdf(file_bytes)
-        total_chunks = process_and_store_pdf(text,file.filename)
+        processing = ingest_pdf(filename, await file.read(), metadata)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="PDF indexing failed") from exc
 
     return UploadResponse(
-        filename=file.filename,
+        filename=filename,
         message="PDF uploaded and indexed successfully",
-        total_chunks=total_chunks,
+        **processing,
     )
 
 
 @router.post("/ask", response_model=QAResponse)
 async def ask_question_endpoint(request: QuestionRequest) -> QAResponse:
-    if not request.query.strip():
-        raise HTTPException(status_code=400, detail="Query cannot be empty")
-
     try:
-        answer = generate_answer(request.query)
+        result = answer_question(request.query, filters=request.filters, top_k=request.top_k)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-    return QAResponse(query=request.query, answer=answer)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return QAResponse(**result)
