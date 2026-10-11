@@ -52,7 +52,11 @@ from .metadata_service import build_mongo_pre_filter, build_mongo_query
 class HybridRetriever:
     def __init__(self, vector_ingestor, collection=None):
         self.vector_ingestor = vector_ingestor
-        self.collection = collection or vector_ingestor.collection
+        # PyMongo Collection deliberately does not support truth-value
+        # testing. Use an explicit None check instead of `collection or ...`.
+        self.collection = (
+            collection if collection is not None else vector_ingestor.collection
+        )
 
     def vector_search(self, query: str, k: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         docs = self.vector_ingestor.similarity_search_with_score(query, k=k, filters=filters)
@@ -71,7 +75,7 @@ class HybridRetriever:
 
     def bm25_search(self, query: str, k: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         mongo_filter = build_mongo_query(filters)
-        cursor = self.collection.find(mongo_filter, {"text": 1, "metadata": 1})
+        cursor = self.collection.find(mongo_filter, {"text": 1, "source": 1, "page": 1, "chunk_id": 1, "chunk_type": 1, "document_id": 1})
         rows = list(cursor)
         if not rows:
             return []
@@ -88,7 +92,11 @@ class HybridRetriever:
 
         results = []
         for rank, (row, score) in enumerate(ranked, start=1):
-            metadata = dict(row.get("metadata", {}))
+            metadata = {
+                key: row[key]
+                for key in ("source", "page", "chunk_id", "chunk_type", "document_id")
+                if key in row
+            }
             results.append({
                 "text": row.get("text", ""),
                 "metadata": metadata,
@@ -123,10 +131,10 @@ def expand_page_context(collection, results: List[Dict[str, Any]], radius: int =
             continue
 
         candidates = list(collection.find(
-            {"metadata.source": source, "metadata.page": {"$gte": page_number - max(0, radius), "$lte": page_number + max(0, radius)}},
-            {"text": 1, "metadata": 1},
-        ).sort("metadata.page", 1))
-        candidates.sort(key=lambda row: (row.get("metadata", {}).get("page", 0), row.get("metadata", {}).get("chunk_id", "")))
+            {"source": source, "page": {"$gte": page_number - max(0, radius), "$lte": page_number + max(0, radius)}},
+            {"text": 1, "source": 1, "page": 1, "chunk_id": 1},
+        ).sort("page", 1))
+        candidates.sort(key=lambda row: (row.get("page", 0), row.get("chunk_id", "")))
         context = "\n\n".join(row.get("text", "") for row in candidates if row.get("text"))
         result["context"] = context[:max_chars]
         expanded.append(result)

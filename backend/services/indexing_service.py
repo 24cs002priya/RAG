@@ -88,7 +88,7 @@ class VectorDBIngestor:
 
         result = self.collection.delete_many(
             {
-                "metadata.source": filename
+                "source": filename
             }
         )
 
@@ -115,7 +115,8 @@ class VectorDBIngestor:
     def similarity_search_with_score(
         self,
         query: str,
-        k: int = 5
+        k: int = 5,
+        filters=None,
     ):
         """
         Perform vector search and return similarity scores.

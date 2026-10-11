@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { FileText, Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { FolioShell, Surface } from './FolioShell';
 import { askQuestion } from '../api';
 
@@ -80,8 +82,18 @@ export function ChatView({ onNavigate, onLogout }) {
                 key={message.id}
                 data-testid={`message-${message.role}-${message.id}`}
               >
-                {message.role === 'assistant' && <strong>Folio assistant</strong>}
-                {message.content}
+                {message.role === 'assistant' && (
+                  <strong className="folio-assistant-label">Folio assistant</strong>
+                )}
+                {message.role === 'assistant' ? (
+                  <div className="folio-markdown">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  message.content
+                )}
                 {message.bullets && (
                   <ul>
                     {message.bullets.map((bullet) => (

@@ -59,14 +59,17 @@ class LLMReranker:
     def set_up_llm(self):
         from openai import OpenAI
         load_dotenv()
-        llm = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        llm = OpenAI(
+            api_key=os.getenv("GEMINI_API_KEY"),
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        )
         return llm
     
     def get_rank_for_single_block(self, query, retrieved_document):
         user_prompt = f'/nHere is the query:/n"{query}"/n/nHere is the retrieved text block:/n"""/n{retrieved_document}/n"""/n'
         
         completion = self.llm.beta.chat.completions.parse(
-            model="gpt-4o-mini-2024-07-18",
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             temperature=0,
             messages=[
                 {"role": "system", "content": self.system_prompt_rerank_single_block},
@@ -90,7 +93,7 @@ class LLMReranker:
         )
 
         completion = self.llm.beta.chat.completions.parse(
-            model="gpt-4o-mini-2024-07-18",
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             temperature=0,
             messages=[
                 {"role": "system", "content": self.system_prompt_rerank_multiple_blocks},

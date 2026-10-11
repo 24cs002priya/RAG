@@ -81,14 +81,28 @@ class PDFParser:
     def _create_document_converter(self) -> "DocumentConverter": # type: ignore
         """Creates and returns a DocumentConverter with default pipeline options."""
         from docling.document_converter import DocumentConverter, FormatOption
-        from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, EasyOcrOptions
+        from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
         from docling.datamodel.base_models import InputFormat
         from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
         
         pipeline_options = PdfPipelineOptions()
-        pipeline_options.do_ocr = True
-        ocr_options = EasyOcrOptions(lang=['en'], force_full_page_ocr=False)
-        pipeline_options.ocr_options = ocr_options
+
+        # OCR is optional. Most PDFs already contain an embedded text layer,
+        # and enabling EasyOCR unconditionally makes ingestion fail when the
+        # optional easyocr package is not installed. Enable it explicitly for
+        # scanned/image-only PDFs with RAG_ENABLE_OCR=1.
+        pipeline_options.do_ocr = os.getenv("RAG_ENABLE_OCR", "0") == "1"
+        if pipeline_options.do_ocr:
+            try:
+                from docling.datamodel.pipeline_options import EasyOcrOptions
+            except ImportError as exc:
+                raise RuntimeError(
+                    "OCR is enabled but EasyOCR support is unavailable. "
+                    "Install easyocr or set RAG_ENABLE_OCR=0."
+                ) from exc
+            pipeline_options.ocr_options = EasyOcrOptions(
+                lang=['en'], force_full_page_ocr=False
+            )
         pipeline_options.do_table_structure = True
         pipeline_options.table_structure_options.do_cell_matching = True
         pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE

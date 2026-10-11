@@ -113,7 +113,7 @@ class TableSerializer(BaseOpenaiProcessor):
         return context_before, context_after
 
     def _send_serialization_request(self, table, context_before, context_after):
-        if not os.getenv("OPENAI_API_KEY") or not hasattr(self, "send_message"):
+        if not os.getenv("GEMINI_API_KEY") or not hasattr(self, "send_message"):
             return self._fallback_serialization(table)
         user_prompt = ""
         
@@ -196,7 +196,7 @@ class TableSerializer(BaseOpenaiProcessor):
         results_filepath: str = './temp_async_llm_results.jsonl'
     ) -> dict:
         """Process all tables in the report asynchronously"""
-        if AsyncOpenaiProcessor is None or not os.getenv("OPENAI_API_KEY"):
+        if AsyncOpenaiProcessor is None or not os.getenv("GEMINI_API_KEY"):
             return self.serialize_tables(json_report)
         queries = []
         table_indices = []

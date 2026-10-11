@@ -40,7 +40,7 @@ def delete_document(filename: str) -> bool:
     vector_coll = get_collection()
 
     # 1. Delete vector embeddings (chunks) tagged with this filename source
-    vector_coll.delete_many({"metadata.source": filename})
+    vector_coll.delete_many({"source": filename})
 
     # 2. Delete document entry from metadata collection
     result = meta_coll.delete_one({"filename": filename})

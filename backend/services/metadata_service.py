@@ -70,7 +70,9 @@ def normalize_metadata(metadata: Optional[Dict[str, Any]] = None) -> Dict[str, A
 def build_mongo_pre_filter(filters: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """Build the Atlas Vector Search pre-filter for metadata fields."""
     normalized = normalize_metadata(filters)
-    return {f"metadata.{key}": value for key, value in normalized.items()}
+    # MongoDBAtlasVectorSearch stores LangChain Document metadata as
+    # top-level document fields, not under a nested `metadata` object.
+    return {key: value for key, value in normalized.items()}
 
 
 def build_mongo_query(filters: Optional[Dict[str, Any]]) -> Dict[str, Any]:

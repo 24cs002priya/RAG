@@ -452,13 +452,86 @@
   align-self: flex-start;
   background: #dddad6;
 }
-.folio-bubble strong {
+.folio-bubble > .folio-assistant-label {
   display: block;
   margin-bottom: 7px;
   color: #777a77;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+.folio-markdown > :first-child {
+  margin-top: 0;
+}
+.folio-markdown > :last-child {
+  margin-bottom: 0;
+}
+.folio-markdown p {
+  margin: 8px 0;
+}
+.folio-markdown h1,
+.folio-markdown h2,
+.folio-markdown h3 {
+  margin: 14px 0 7px;
+  color: #343736;
+  line-height: 1.25;
+}
+.folio-markdown h1 { font-size: 18px; }
+.folio-markdown h2 { font-size: 16px; }
+.folio-markdown h3 { font-size: 15px; }
+.folio-markdown ul,
+.folio-markdown ol {
+  margin: 8px 0;
+  padding-left: 21px;
+}
+.folio-markdown li {
+  margin: 4px 0;
+}
+.folio-markdown blockquote {
+  margin: 10px 0;
+  padding-left: 12px;
+  border-left: 3px solid #b8aaa5;
+  color: #5d625f;
+}
+.folio-markdown code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+}
+.folio-markdown pre {
+  overflow-x: auto;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.45);
+}
+.folio-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+.folio-markdown table {
+  display: block;
+  max-width: 100%;
+  margin: 10px 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.folio-markdown th,
+.folio-markdown td {
+  padding: 7px 9px;
+  border: 1px solid #bdb8b2;
+  text-align: left;
+  vertical-align: top;
+}
+.folio-markdown th {
+  background: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+}
+.folio-markdown a {
+  color: #9b4f6a;
+  text-decoration: underline;
 }
 .folio-bubble ul {
   margin: 8px 0 0;

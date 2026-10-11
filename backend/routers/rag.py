@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -8,6 +9,7 @@ from backend.services.ingestion_service import ingest_pdf
 from backend.services.rag_service import answer_question
 
 router = APIRouter(prefix="/rag", tags=["rag"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/documents", response_model=List[Dict[str, Any]])
@@ -58,6 +60,7 @@ async def upload_pdf(
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
+        logger.exception("PDF upload/indexing failed for %s", filename)
         raise HTTPException(status_code=500, detail="PDF indexing failed") from exc
 
     return UploadResponse(
